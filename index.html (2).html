@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PsyArcade — Dashboard IA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0A0E1A;
+  color: #E8F4FB;
+  min-height: 100vh;
+}
+
+/* NAV */
+nav {
+  background: rgba(15,20,35,0.95);
+  border-bottom: 1px solid rgba(55,138,221,0.25);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+.nav-logo {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #378ADD, #1D9E75);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+.nav-sub { font-size: 12px; color: rgba(232,244,251,0.4); margin-top: 2px; }
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.btn-refresh {
+  background: rgba(55,138,221,0.15);
+  border: 1px solid rgba(55,138,221,0.4);
+  color: #85B7EB;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.btn-refresh:hover { background: rgba(55,138,221,0.3); }
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #1D9E75;
+  box-shadow: 0 0 6px #1D9E75;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* MAIN */
+main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
+
+/* STATS ROW */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(55,138,221,0.18);
+  border-radius: 12px;
+  padding: 18px 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.sc-blue::before { background: #378ADD; }
+.sc-green::before { background: #1D9E75; }
+.sc-amber::before { background: #EF9F27; }
+.sc-red::before { background: #E24B4A; }
+.sc-purple::before { background: #7F77DD; }
+.stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.sv-blue { color: #378ADD; }
+.sv-green { color: #1D9E75; }
+.sv-amber { color: #EF9F27; }
+.sv-red { color: #E24B4A; }
+.sv-purple { color: #7F77DD; }
+.stat-label { font-size: 11px; color: rgba(232,244,251,0.45); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* GRID */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+/* CARD */
+.card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(55,138,221,0.18);
+  border-radius: 14px;
+  padding: 20px;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(232,244,251,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ct-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.ctd-blue { background: #378ADD; }
+.ctd-green { background: #1D9E75; }
+.ctd-purple { background: #7F77DD; }
+.ctd-amber { background: #EF9F27; }
+
+/* TABLE */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(232,244,251,0.35);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(55,138,221,0.12);
+}
+.data-table td {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: rgba(232,244,251,0.8);
+  vertical-align: middle;
+}
+.data-table tr:hover td { background: rgba(55,138,221,0.06); }
+.data-table tr:last-child td { border-bottom: none; }
+
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-low { background: rgba(29,158,117,0.2); color: #5DCAA5; border: 1px solid rgba(29,158,117,0.4); }
+.badge-mod { background: rgba(239,159,39,0.2); color: #EF9F27; border: 1px solid rgba(239,159,39,0.4); }
+.badge-high { background: rgba(226,75,74,0.2); color: #F09595; border: 1px solid rgba(226,75,74,0.4); }
+
+/* AI SECTION */
+.ai-box {
+  background: rgba(29,158,117,0.06);
+  border: 1px solid rgba(29,158,117,0.25);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.ai-icon {
+  width: 36px; height: 36px;
+  background: rgba(29,158,117,0.2);
+  border: 1px solid rgba(29,158,117,0.4);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.ai-title { font-size: 15px; font-weight: 600; color: #5DCAA5; }
+.ai-sub { font-size: 12px; color: rgba(232,244,251,0.4); }
+.ai-response {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(232,244,251,0.75);
+  white-space: pre-wrap;
+}
+.ai-response.loading {
+  color: rgba(232,244,251,0.35);
+  font-style: italic;
+}
+.btn-ai {
+  background: linear-gradient(135deg, rgba(29,158,117,0.3), rgba(55,138,221,0.3));
+  border: 1px solid rgba(29,158,117,0.5);
+  color: #5DCAA5;
+  padding: 10px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin-top: 14px;
+}
+.btn-ai:hover { background: linear-gradient(135deg, rgba(29,158,117,0.5), rgba(55,138,221,0.5)); }
+.btn-ai:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* INDIVIDUAL ANALYSIS */
+.individual-box {
+  background: rgba(55,138,221,0.06);
+  border: 1px solid rgba(55,138,221,0.2);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.select-patient {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(55,138,221,0.3);
+  border-radius: 8px;
+  color: #E8F4FB;
+  padding: 8px 14px;
+  font-size: 13px;
+  width: 100%;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.select-patient option { background: #0F1428; }
+
+/* CHAT */
+.chat-box {
+  background: rgba(127,119,221,0.06);
+  border: 1px solid rgba(127,119,221,0.2);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.chat-messages {
+  min-height: 120px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg-user {
+  align-self: flex-end;
+  background: rgba(55,138,221,0.2);
+  border: 1px solid rgba(55,138,221,0.3);
+  border-radius: 12px 12px 2px 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  max-width: 75%;
+}
+.msg-ai {
+  align-self: flex-start;
+  background: rgba(29,158,117,0.1);
+  border: 1px solid rgba(29,158,117,0.25);
+  border-radius: 2px 12px 12px 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  max-width: 85%;
+  color: rgba(232,244,251,0.8);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.chat-input-row {
+  display: flex;
+  gap: 10px;
+}
+.chat-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(127,119,221,0.3);
+  border-radius: 10px;
+  color: #E8F4FB;
+  padding: 10px 14px;
+  font-size: 13px;
+  outline: none;
+}
+.chat-input:focus { border-color: rgba(127,119,221,0.6); }
+.btn-send {
+  background: rgba(127,119,221,0.3);
+  border: 1px solid rgba(127,119,221,0.5);
+  color: #AFA9EC;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.btn-send:hover { background: rgba(127,119,221,0.5); }
+
+/* CANVAS */
+canvas { max-height: 220px; }
+
+/* LOADING */
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: rgba(232,244,251,0.35);
+  font-size: 14px;
+}
+.spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid rgba(55,138,221,0.2);
+  border-top-color: #378ADD;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* EMPTY */
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: rgba(232,244,251,0.3);
+  font-size: 13px;
+}
+
+/* API KEY CONFIG */
+.config-banner {
+  background: rgba(239,159,39,0.1);
+  border: 1px solid rgba(239,159,39,0.3);
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #EF9F27;
+}
+.config-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(239,159,39,0.4);
+  border-radius: 8px;
+  color: #E8F4FB;
+  padding: 6px 12px;
+  font-size: 12px;
+  flex: 1;
+  outline: none;
+  font-family: monospace;
+}
+.btn-save-key {
+  background: rgba(239,159,39,0.2);
+  border: 1px solid rgba(239,159,39,0.4);
+  color: #EF9F27;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(55,138,221,0.3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div>
+    <div class="nav-logo">PsyArcade</div>
+    <div class="nav-sub">Dashboard de Evaluación Psicométrica con IA</div>
+  </div>
+  <div class="nav-right">
+    <div class="status-dot"></div>
+    <span style="font-size:12px;color:rgba(232,244,251,0.4)">En línea</span>
+    <button class="btn-refresh" onclick="cargarDatos()">↻ Actualizar datos</button>
+  </div>
+</nav>
+
+<main>
+
+  <!-- CONFIG API KEY -->
+  <div class="config-banner" id="configBanner">
+    <span>🔑</span>
+    <span>API Key de Groq (Gratis):</span>
+    <input class="config-input" id="apiKeyInput" type="password" placeholder="Pega aqui tu API key de Groq" >
+    <button class="btn-save-key" onclick="guardarKey()">Guardar</button>
+    <span id="keyStatus" style="font-size:12px;color:#5DCAA5;display:none">✓ Guardada</span>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card sc-blue">
+      <div class="stat-value sv-blue" id="totalEvaluados">—</div>
+      <div class="stat-label">Total Evaluados</div>
+    </div>
+    <div class="stat-card sc-green">
+      <div class="stat-value sv-green" id="promPuntaje">—</div>
+      <div class="stat-label">Puntaje Promedio</div>
+    </div>
+    <div class="stat-card sc-amber">
+      <div class="stat-value sv-amber" id="promBPM">—</div>
+      <div class="stat-label">BPM Promedio</div>
+    </div>
+    <div class="stat-card sc-red">
+      <div class="stat-value sv-red" id="casosAltos">—</div>
+      <div class="stat-label">Estrés Alto</div>
+    </div>
+    <div class="stat-card sc-purple">
+      <div class="stat-value sv-purple" id="promLatencia">—</div>
+      <div class="stat-label">Latencia Prom (seg)</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title"><span class="ct-dot ctd-blue"></span>Distribución de Niveles</div>
+      <canvas id="chartNiveles"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot ctd-green"></span>Puntaje PSS-10 por Sesión</div>
+      <canvas id="chartPuntajes"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="ct-dot ctd-amber"></span>BPM por Sesión</div>
+      <canvas id="chartBPM"></canvas>
+    </div>
+  </div>
+
+  <!-- AI ANALISIS GRUPAL -->
+  <div class="ai-box">
+    <div class="ai-header">
+      <div class="ai-icon">🤖</div>
+      <div>
+        <div class="ai-title">Análisis IA — Patrones Grupales</div>
+        <div class="ai-sub">Claude analiza todos los datos y genera recomendaciones clínicas</div>
+      </div>
+    </div>
+    <div class="ai-response loading" id="aiResponse">Presiona el botón para que la IA analice los datos del grupo...</div>
+    <button class="btn-ai" id="btnAnalizar" onclick="analizarGrupo()">🧠 Analizar con IA</button>
+  </div>
+
+  <!-- ANALISIS INDIVIDUAL -->
+  <div class="individual-box">
+    <div class="card-title"><span class="ct-dot ctd-blue"></span>Análisis Individual por Evaluado</div>
+    <select class="select-patient" id="selectPaciente" onchange="analizarIndividual()">
+      <option value="">— Selecciona un evaluado —</option>
+    </select>
+    <div class="ai-response" id="aiIndividual" style="color:rgba(232,244,251,0.35);font-style:italic">Selecciona un evaluado para ver su análisis personalizado...</div>
+  </div>
+
+  <!-- CHAT CON IA -->
+  <div class="chat-box">
+    <div class="card-title"><span class="ct-dot ctd-purple"></span>Consulta a la IA sobre los Datos</div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg-ai">Hola. Soy el asistente de PsyArcade. Puedes preguntarme cualquier cosa sobre los datos de evaluación. Por ejemplo: ¿Cuáles son los evaluados con mayor riesgo? ¿Qué patrones ves en los BPM? ¿Qué recomendaciones tienes?</div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" placeholder="Escribe tu pregunta sobre los datos..." onkeydown="if(event.key==='Enter') enviarChat()">
+      <button class="btn-send" onclick="enviarChat()">Enviar →</button>
+    </div>
+  </div>
+
+  <!-- TABLA DE DATOS -->
+  <div class="card">
+    <div class="card-title"><span class="ct-dot ctd-blue"></span>Todos los Reportes</div>
+    <div id="tablaContainer">
+      <div class="loading-state"><span class="spinner"></span>Cargando datos...</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ============================================================
+// CONFIGURACION
+// ============================================================
+const SHEET_ID = '1fHHnminGXnL_GDNkzf1pmZLqfQFEAfcV7DvYrNoX7KE';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+let apiKey = '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';
+let datosGlobales = [];
+let charts = {};
+let historialChat = [];
+
+function guardarKey() {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  document.getElementById('keyStatus').style.display = 'inline';
+  setTimeout(() => document.getElementById('keyStatus').style.display = 'none', 2000);
+}
+
+// ============================================================
+// CARGAR DATOS DESDE GOOGLE SHEETS
+// ============================================================
+async function cargarDatos() {
+  try {
+    const res = await fetch(SHEET_URL);
+    const text = await res.text();
+    const json = JSON.parse(text.substring(47, text.length - 2));
+    const rows = json.table.rows;
+    const cols = json.table.cols.map(c => c.label);
+
+    datosGlobales = rows.map(row => {
+      const obj = {};
+      cols.forEach((col, i) => {
+        obj[col] = row.c[i] ? (row.c[i].v !== null ? row.c[i].v : '') : '';
+      });
+      return obj;
+    }).filter(r => r['ID Sesion'] || r['ID Sesión']);
+
+    if (datosGlobales.length === 0) {
+      document.getElementById('tablaContainer').innerHTML = '<div class="empty-state">No hay datos aún. Completa una evaluación en PsyArcade para ver los resultados aquí.</div>';
+      return;
+    }
+
+    actualizarStats();
+    actualizarGraficas();
+    actualizarTabla();
+    actualizarSelectPaciente();
+
+  } catch(e) {
+    document.getElementById('tablaContainer').innerHTML = `<div class="empty-state">Error al cargar datos. Verifica que la hoja sea pública.<br><small style="color:rgba(232,244,251,0.2)">${e.message}</small></div>`;
+  }
+}
+
+// ============================================================
+// ESTADISTICAS
+// ============================================================
+function actualizarStats() {
+  const d = datosGlobales;
+  const total = d.length;
+  const puntajes = d.map(r => parseFloat(r['Puntaje Total'] || 0)).filter(v => !isNaN(v));
+  const bpms = d.map(r => parseFloat(r['Promedio BPM'] || 0)).filter(v => !isNaN(v) && v > 0);
+  const latencias = d.map(r => parseFloat(r['Latencia Promedio (seg)'] || 0)).filter(v => !isNaN(v));
+  const altos = d.filter(r => {
+    const p = parseFloat(r['Puntaje Total'] || 0);
+    return p >= 27;
+  }).length;
+
+  document.getElementById('totalEvaluados').textContent = total;
+  document.getElementById('promPuntaje').textContent = puntajes.length ? (puntajes.reduce((a,b)=>a+b,0)/puntajes.length).toFixed(1) : '—';
+  document.getElementById('promBPM').textContent = bpms.length ? (bpms.reduce((a,b)=>a+b,0)/bpms.length).toFixed(1) : '—';
+  document.getElementById('casosAltos').textContent = altos;
+  document.getElementById('promLatencia').textContent = latencias.length ? (latencias.reduce((a,b)=>a+b,0)/latencias.length).toFixed(2) : '—';
+}
+
+// ============================================================
+// GRAFICAS
+// ============================================================
+function actualizarGraficas() {
+  const d = datosGlobales;
+
+  // Destruir charts anteriores
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+
+  const chartOpts = {
+    responsive: true,
+    plugins: { legend: { labels: { color: 'rgba(232,244,251,0.6)', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: 'rgba(232,244,251,0.4)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+      y: { ticks: { color: 'rgba(232,244,251,0.4)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+    }
+  };
+
+  // Grafica 1 — Distribucion de niveles
+  const bajos = d.filter(r => parseFloat(r['Puntaje Total']||0) <= 13).length;
+  const moderados = d.filter(r => { const p=parseFloat(r['Puntaje Total']||0); return p>=14&&p<=26; }).length;
+  const altos = d.filter(r => parseFloat(r['Puntaje Total']||0) >= 27).length;
+
+  charts.niveles = new Chart(document.getElementById('chartNiveles'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Bajo (0-13)', 'Moderado (14-26)', 'Alto (27-40)'],
+      datasets: [{
+        data: [bajos, moderados, altos],
+        backgroundColor: ['rgba(29,158,117,0.7)', 'rgba(239,159,39,0.7)', 'rgba(226,75,74,0.7)'],
+        borderColor: ['#1D9E75', '#EF9F27', '#E24B4A'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: 'rgba(232,244,251,0.6)', font: { size: 11 }, padding: 12 } }
+      }
+    }
+  });
+
+  // Grafica 2 — Puntajes por sesion
+  const labels = d.map((r,i) => `S${i+1}`);
+  const puntajes = d.map(r => parseFloat(r['Puntaje Total']||0));
+
+  charts.puntajes = new Chart(document.getElementById('chartPuntajes'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Puntaje PSS-10',
+        data: puntajes,
+        backgroundColor: puntajes.map(p => p>=27?'rgba(226,75,74,0.7)':p>=14?'rgba(239,159,39,0.7)':'rgba(29,158,117,0.7)'),
+        borderColor: puntajes.map(p => p>=27?'#E24B4A':p>=14?'#EF9F27':'#1D9E75'),
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: { ...chartOpts, plugins: { ...chartOpts.plugins, legend: { display: false } } }
+  });
+
+  // Grafica 3 — BPM por sesion
+  const bpms = d.map(r => parseFloat(r['Promedio BPM']||0));
+
+  charts.bpm = new Chart(document.getElementById('chartBPM'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'BPM Promedio',
+        data: bpms,
+        borderColor: '#378ADD',
+        backgroundColor: 'rgba(55,138,221,0.1)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#378ADD',
+        pointRadius: 4
+      }]
+    },
+    options: chartOpts
+  });
+}
+
+// ============================================================
+// TABLA
+// ============================================================
+function getNivelBadge(puntaje) {
+  const p = parseFloat(puntaje || 0);
+  if (p >= 27) return '<span class="badge badge-high">Alto</span>';
+  if (p >= 14) return '<span class="badge badge-mod">Moderado</span>';
+  return '<span class="badge badge-low">Bajo</span>';
+}
+
+function actualizarTabla() {
+  const d = datosGlobales;
+  const html = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID Sesión</th>
+          <th>Fecha</th>
+          <th>Puntaje</th>
+          <th>Nivel</th>
+          <th>Sub. Estrés</th>
+          <th>Sub. Resiliencia</th>
+          <th>BPM</th>
+          <th>Latencia (seg)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${d.map(r => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px;color:#85B7EB">${r['ID Sesion']||r['ID Sesión']||'—'}</td>
+            <td style="font-size:12px">${r['Fecha']||'—'}</td>
+            <td style="font-weight:700;color:#E8F4FB">${r['Puntaje Total']||'—'}/40</td>
+            <td>${getNivelBadge(r['Puntaje Total'])}</td>
+            <td>${r['Subescala Estrés']||r['Subescala Estres']||'—'}</td>
+            <td>${r['Subescala Resiliencia']||'—'}</td>
+            <td>${parseFloat(r['Promedio BPM']||0)>0 ? parseFloat(r['Promedio BPM']).toFixed(1)+' BPM' : '—'}</td>
+            <td>${r['Latencia Promedio (seg)']||'—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('tablaContainer').innerHTML = html;
+}
+
+// ============================================================
+// SELECT PACIENTES
+// ============================================================
+function actualizarSelectPaciente() {
+  const sel = document.getElementById('selectPaciente');
+  const opciones = datosGlobales.map((r, i) => {
+    const id = r['ID Sesion'] || r['ID Sesión'] || `Sesion ${i+1}`;
+    const nivel = parseFloat(r['Puntaje Total']||0) >= 27 ? '🔴' : parseFloat(r['Puntaje Total']||0) >= 14 ? '🟡' : '🟢';
+    return `<option value="${i}">${nivel} ${id} — ${r['Puntaje Total']||0}/40</option>`;
+  });
+  sel.innerHTML = '<option value="">— Selecciona un evaluado —</option>' + opciones.join('');
+}
+
+// ============================================================
+// LLAMADA A CLAUDE API
+// ============================================================
+async function llamarClaude(mensajes, sistema) {
+  const mensajesGroq = [
+    { role: 'system', content: sistema },
+    ...mensajes
+  ];
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      model: 'openai/gpt-oss-120b',
+      max_tokens: 1000,
+      messages: mensajesGroq
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices[0].message.content;
+}
+
+// ============================================================
+// ANALISIS GRUPAL
+// ============================================================
+async function analizarGrupo() {
+  if (!apiKey) { alert('Agrega tu API key primero'); return; }
+  if (datosGlobales.length === 0) { alert('Carga los datos primero'); return; }
+
+  const btn = document.getElementById('btnAnalizar');
+  const resp = document.getElementById('aiResponse');
+  btn.disabled = true;
+  resp.className = 'ai-response loading';
+  resp.textContent = 'Analizando datos con IA...';
+
+  try {
+    const resumen = datosGlobales.map((r, i) => {
+      const id = r['ID Sesion'] || r['ID Sesión'] || `Sesion ${i+1}`;
+      return `${id}: PSS-10=${r['Puntaje Total']}/40, BPM=${r['Promedio BPM']}, Latencia=${r['Latencia Promedio (seg)']}seg`;
+    }).join('\n');
+
+    const total = datosGlobales.length;
+    const altos = datosGlobales.filter(r => parseFloat(r['Puntaje Total']||0) >= 27).length;
+    const moderados = datosGlobales.filter(r => { const p=parseFloat(r['Puntaje Total']||0); return p>=14&&p<=26; }).length;
+    const bajos = total - altos - moderados;
+
+    const sistema = `Eres un psicologo clinico especializado en estres y salud mental laboral y universitaria. 
+Analiza datos de la Escala de Estres Percibido PSS-10 (Cohen, 1983).
+Rango: 0-13 bajo, 14-26 moderado, 27-40 alto.
+BPM mayor a 92 indica activacion simpatica (estres fisiologico).
+Latencia mayor a 7 segundos indica fatiga cognitiva.
+Responde en espanol, de forma clara, profesional y util para un evaluador.
+Maximo 300 palabras.`;
+
+    const prompt = `Analiza estos datos de evaluacion de estres de ${total} personas:
+
+Distribucion:
+- Estres BAJO (0-13): ${bajos} personas (${Math.round(bajos/total*100)}%)
+- Estres MODERADO (14-26): ${moderados} personas (${Math.round(moderados/total*100)}%)
+- Estres ALTO (27-40): ${altos} personas (${Math.round(altos/total*100)}%)
+
+Datos individuales:
+${resumen}
+
+Proporciona:
+1. Diagnostico general del grupo
+2. Patrones identificados (correlacion PSS-BPM-latencia)
+3. Casos prioritarios de atencion
+4. Recomendaciones concretas para el evaluador`;
+
+    const texto = await llamarClaude([{ role: 'user', content: prompt }], sistema);
+    resp.className = 'ai-response';
+    resp.textContent = texto;
+  } catch(e) {
+    resp.className = 'ai-response';
+    resp.textContent = `Error: ${e.message}`;
+  }
+  btn.disabled = false;
+}
+
+// ============================================================
+// ANALISIS INDIVIDUAL
+// ============================================================
+async function analizarIndividual() {
+  const idx = document.getElementById('selectPaciente').value;
+  if (idx === '') return;
+
+  const div = document.getElementById('aiIndividual');
+  div.style.color = 'rgba(232,244,251,0.35)';
+  div.style.fontStyle = 'italic';
+  div.textContent = 'Analizando evaluado...';
+
+  if (!apiKey) { div.textContent = 'Agrega tu API key para ver el analisis individual.'; return; }
+
+  const r = datosGlobales[parseInt(idx)];
+  const id = r['ID Sesion'] || r['ID Sesión'] || `Sesion ${parseInt(idx)+1}`;
+  const puntaje = parseFloat(r['Puntaje Total'] || 0);
+  const bpm = parseFloat(r['Promedio BPM'] || 0);
+  const latencia = parseFloat(r['Latencia Promedio (seg)'] || 0);
+  const subEst = r['Subescala Estrés'] || r['Subescala Estres'] || '—';
+  const subRes = r['Subescala Resiliencia'] || '—';
+
+  try {
+    const sistema = `Eres un psicologo clinico experto en PSS-10. Analiza el perfil individual de un evaluado y genera un reporte personalizado. Responde en espanol. Maximo 250 palabras.`;
+
+    const prompt = `Analiza este perfil individual:
+
+ID: ${id}
+Fecha: ${r['Fecha'] || '—'}
+Puntaje PSS-10: ${puntaje}/40
+Subescala Estres Percibido (items directos): ${subEst}
+Subescala Resiliencia (items inversos): ${subRes}
+Promedio BPM: ${bpm > 0 ? bpm.toFixed(1) : 'No disponible'}
+Latencia promedio de respuesta: ${latencia.toFixed(2)} segundos
+
+Proporciona:
+1. Interpretacion clinica del puntaje PSS-10
+2. Analisis de la relacion entre subescalas (estres vs resiliencia)
+3. Interpretacion del biofeedback cardiaco si esta disponible
+4. Interpretacion de la latencia de respuesta
+5. Recomendacion personalizada especifica para este evaluado`;
+
+    const texto = await llamarClaude([{ role: 'user', content: prompt }], sistema);
+    div.style.color = 'rgba(232,244,251,0.8)';
+    div.style.fontStyle = 'normal';
+    div.textContent = texto;
+  } catch(e) {
+    div.textContent = `Error: ${e.message}`;
+  }
+}
+
+// ============================================================
+// CHAT CON IA
+// ============================================================
+async function enviarChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (!apiKey) { alert('Agrega tu API key primero'); return; }
+
+  input.value = '';
+  const chatDiv = document.getElementById('chatMessages');
+
+  // Mensaje usuario
+  chatDiv.innerHTML += `<div class="msg-user">${msg}</div>`;
+
+  // Typing indicator
+  const typingId = 'typing-' + Date.now();
+  chatDiv.innerHTML += `<div class="msg-ai" id="${typingId}" style="color:rgba(232,244,251,0.35);font-style:italic">Pensando...</div>`;
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+
+  historialChat.push({ role: 'user', content: msg });
+
+  try {
+    const resumen = datosGlobales.length > 0 ? datosGlobales.map((r,i) => {
+      const id = r['ID Sesion'] || r['ID Sesión'] || `S${i+1}`;
+      return `${id}: PSS=${r['Puntaje Total']}/40, BPM=${r['Promedio BPM']}, Lat=${r['Latencia Promedio (seg)']}s`;
+    }).join(' | ') : 'Sin datos cargados';
+
+    const sistema = `Eres el asistente clinico de PsyArcade, un sistema de evaluacion de estres gamificado.
+Tienes acceso a los datos de evaluacion: ${resumen}
+Responde preguntas sobre los datos de forma clara y util para el evaluador.
+Responde en espanol. Maximo 200 palabras por respuesta.`;
+
+    const texto = await llamarClaude(historialChat, sistema);
+    historialChat.push({ role: 'assistant', content: texto });
+
+    document.getElementById(typingId).textContent = texto;
+    document.getElementById(typingId).style.color = '';
+    document.getElementById(typingId).style.fontStyle = '';
+  } catch(e) {
+    document.getElementById(typingId).textContent = `Error: ${e.message}`;
+  }
+
+  chatDiv.scrollTop = chatDiv.scrollHeight;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', cargarDatos);
+</script>
+</body>
+</html>
